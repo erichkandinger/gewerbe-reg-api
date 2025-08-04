@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using GewerbeRegApi.Models;
+using gewerbe_reg_api.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<TodoContext>(opt =>
     opt.UseInMemoryDatabase("TodoList"));
+builder.Services.AddHttpClient<AddressController>();
     
 
 var app = builder.Build();

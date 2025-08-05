@@ -16,12 +16,14 @@ public class PLZRequest
 
 public class PLZResponse
 {
-    public PLZResponse(string plz, string ort)
+    public PLZResponse(string? plz, string? ort, string? gemeinde)
     {
         PLZ = plz;
         Ort = ort;
+        Gemeinde = gemeinde;
     }
 
-    public string PLZ { get; set; }
-    public string Ort { get; set; }
+    public string? PLZ { get; set; }
+    public string? Ort { get; set; }
+    public string? Gemeinde { get; set; }
 }

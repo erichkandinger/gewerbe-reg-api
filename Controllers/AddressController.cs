@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using YamlDotNet.Core.Tokens;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Text.Json.Nodes;
+using Microsoft.Build.Framework;
 
 namespace gewerbe_reg_api.Controllers
 {
@@ -27,6 +28,18 @@ namespace gewerbe_reg_api.Controllers
             _logger = logger;
         }
 
+        private string getStaatCode(string staat)
+        {
+            return staat.ToLower() switch
+            {
+                "a" or "at" or "aut" or "österreich"  => "at",
+                "d" or "de" or "deu" or "deutschland" => "de",
+                "ch" or "schweiz" => "ch",
+                "fl" or "liechtenstein" or "fürstentum liechtenstein" => "fl",
+                _ => ""
+            };
+        }
+
         [HttpPost("search_by_plz")]
         public async Task<ActionResult<IEnumerable<PLZResponse>>> SearchOrt(PLZRequest plzRequest)
         {   // Staat = de, at, ch, fl
@@ -34,7 +47,7 @@ namespace gewerbe_reg_api.Controllers
             {
                 if (plzRequest == null || plzRequest.Staat == null || plzRequest.PLZ == null)
                     return BadRequest("Staat und PLZ nicht übergeben");
-                string url = $"https://openplzapi.org/{plzRequest.Staat.ToLower()}/Localities?postalCode={plzRequest.PLZ}";
+                string url = $"https://openplzapi.org/{getStaatCode(plzRequest.Staat)}/Localities?postalCode={plzRequest.PLZ}";
 
                 // 1. Externen Web Service aufrufen
                 var response = await _httpClient.GetAsync(url);
@@ -51,7 +64,9 @@ namespace gewerbe_reg_api.Controllers
                 foreach (JsonElement item in root.EnumerateArray())
                 {
                     result.Add(new PLZResponse(item.GetProperty("postalCode").GetString(),
-                                               item.GetProperty("name").GetString()));
+                                               item.GetProperty("name").GetString(),
+                                               item.GetProperty("municipality").GetProperty("name").GetString()
+                                               ));
                 }
 
                 // 4. Ergebnis zurückgeben

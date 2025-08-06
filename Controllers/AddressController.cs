@@ -20,6 +20,7 @@ namespace gewerbe_reg_api.Controllers
         private readonly ILogger<AddressController> _logger;
 
         private const string OPENPLZAPIURL = "https://openplzapi.org/";
+        private  string[] checkAtDe = ["at", "de"];
 
 
         public AddressController(HttpClient httpClient, ILogger<AddressController> logger)
@@ -35,19 +36,29 @@ namespace gewerbe_reg_api.Controllers
                 "a" or "at" or "aut" or "österreich"  => "at",
                 "d" or "de" or "deu" or "deutschland" => "de",
                 "ch" or "schweiz" => "ch",
-                "fl" or "liechtenstein" or "fürstentum liechtenstein" => "fl",
+                "fl" or "li" or "liechtenstein" or "fürstentum liechtenstein" => "li",
                 _ => ""
+            };
+        }
+
+        private string getGemeindeAttributeName(string staat)
+        {
+            return staat switch
+            {
+                "de" or "at" => "municipality",
+                _ => "commune"
             };
         }
 
         [HttpPost("search_by_plz")]
         public async Task<ActionResult<IEnumerable<PLZResponse>>> SearchOrt(PLZRequest plzRequest)
-        {   // Staat = de, at, ch, fl
+        {   
             try
             {
                 if (plzRequest == null || plzRequest.Staat == null || plzRequest.PLZ == null)
                     return BadRequest("Staat und PLZ nicht übergeben");
-                string url = $"https://openplzapi.org/{getStaatCode(plzRequest.Staat)}/Localities?postalCode={plzRequest.PLZ}";
+                var staatcd = getStaatCode(plzRequest.Staat);
+                string url = OPENPLZAPIURL + $"{staatcd}/Localities?postalCode={plzRequest.PLZ}";
 
                 // 1. Externen Web Service aufrufen
                 var response = await _httpClient.GetAsync(url);
@@ -65,7 +76,7 @@ namespace gewerbe_reg_api.Controllers
                 {
                     result.Add(new PLZResponse(item.GetProperty("postalCode").GetString(),
                                                item.GetProperty("name").GetString(),
-                                               item.GetProperty("municipality").GetProperty("name").GetString()
+                                               item.GetProperty(getGemeindeAttributeName(staatcd)).GetProperty("name").GetString()
                                                ));
                 }
 
@@ -74,7 +85,7 @@ namespace gewerbe_reg_api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return NotFound(ex.Message);
             }
         }
 
